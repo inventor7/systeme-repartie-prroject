@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P2P Network Control Center</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary: #667eea;
+        --primary-dark: #5a67d8;
+        --secondary: #764ba2;
+        --accent: #f093fb;
+        --success: #48bb78;
+        --warning: #ed8936;
+        --error: #f56565;
+        --dark: #1a202c;
+        --dark-light: #2d3748;
+        --light: #f7fafc;
+        --text: #2d3748;
+        --text-light: #718096;
+        --border: #e2e8f0;
+        --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--secondary) 100%
+        );
+        min-height: 100vh;
+        color: var(--text);
+      }
+
+      .dashboard {
+        display: block; /* Change to block to remove grid layout */
+        min-height: 100vh;
+      }
+
+      /* Main Content */
+      .main-content {
+        padding: 2rem;
+        overflow-y: auto;
+        width: 100%; /* Ensure it takes full width */
+      }
+
+      .header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 2rem;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        padding: 1.5rem 2rem;
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .header h2 {
+        color: var(--dark);
+        font-size: 2rem;
+        font-weight: 700;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--success);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .status-indicator i {
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+      }
+
+      .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        color: var(--text-light);
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .stat-change {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      .stat-change.positive {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success);
+      }
+
+      .stat-change.negative {
+        background: rgba(245, 101, 101, 0.1);
+        color: var(--error);
+      }
+
+      /* Content Sections */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .section {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--border);
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--dark);
+      }
+
+      /* Network Topology */
+      .network-viz {
+        height: 400px;
+        background: linear-gradient(135deg, #667eea20, #764ba220);
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .network-node {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-align: center;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .network-node.super-peer {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        width: 80px;
+        height: 80px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+      }
+
+      .network-node.peer {
+        background: linear-gradient(135deg, var(--accent), var(--warning));
+        animation-delay: var(--delay);
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      /* Peer List */
+      .peer-list {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      .peer-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+        transition: background 0.3s ease;
+      }
+
+      .peer-item:hover {
+        background: rgba(102, 126, 234, 0.05);
+      }
+
+      .peer-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        margin-right: 1rem;
+      }
+
+      .peer-info h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+      }
+
+      .peer-info p {
+        font-size: 0.75rem;
+        color: var(--text-light);
+      }
+
+      .peer-status {
+        margin-left: auto;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .peer-status.online {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success);
+      }
+
+      .peer-status.offline {
+        background: rgba(160, 174, 192, 0.1);
+        color: var(--text-light);
+      }
+
+      /* File Grid */
+      .file-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .file-item {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border);
+      }
+
+      .file-item:hover {
+        background: rgba(255, 255, 255, 0.8);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .file-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), var(--warning));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-bottom: 1rem;
+      }
+
+      .file-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .file-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--text-light);
+      }
+
+      /* Search Bar */
+      .search-container {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        border: none;
+        border-radius: 50px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        font-size: 1rem;
+        outline: none;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+      }
+
+      .search-input:focus {
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 2px solid var(--primary);
+        color: var(--primary);
+      }
+
+      .btn-outline:hover {
+        background: var(--primary);
+        color: white;
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .dashboard {
+          grid-template-columns: 250px 1fr;
+        }
+
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+      }
+
+      /* Loading Animation */
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Notifications */
+      .notification {
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+      }
+
+      .notification.show {
+        transform: translateX(0);
+      }
+
+      .notification.success {
+        border-left: 4px solid var(--success);
+      }
+
+      .notification.error {
+        border-left: 4px solid var(--error);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard">
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="header">
+          <div>
+            <h2 id="page-title">Network Overview</h2>
+            <p id="last-updated">
+              Last updated: <span id="update-time">--:--:--</span>
+            </p>
+          </div>
+          <div class="status-indicator">
+            <i class="fas fa-circle"></i>
+            <span>Super-Peer Online</span>
+          </div>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search files, peers, or network data..."
+            id="global-search"
+          />
+          <i class="fas fa-search search-icon"></i>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div
+                class="stat-icon"
+                style="background: linear-gradient(135deg, #48bb78, #38a169)"
+              >
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="stat-change positive" id="peers-change">+5.2%</div>
+            </div>
+            <div class="stat-value" id="total-peers">0</div>
+            <div class="stat-label">Active Peers</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div
+                class="stat-icon"
+                style="background: linear-gradient(135deg, #667eea, #764ba2)"
+              >
+                <i class="fas fa-folder"></i>
+              </div>
+              <div class="stat-change positive" id="files-change">+12.1%</div>
+            </div>
+            <div class="stat-value" id="total-files">0</div>
+            <div class="stat-label">Shared Files</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div
+                class="stat-icon"
+                style="background: linear-gradient(135deg, #f093fb, #f5576c)"
+              >
+                <i class="fas fa-download"></i>
+              </div>
+              <div class="stat-change positive" id="downloads-change">
+                +8.7%
+              </div>
+            </div>
+            <div class="stat-value" id="total-downloads">0</div>
+            <div class="stat-label">Downloads</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div
+                class="stat-icon"
+                style="background: linear-gradient(135deg, #4facfe, #00f2fe)"
+              >
+                <i class="fas fa-heartbeat"></i>
+              </div>
+              <div class="stat-change positive" id="health-change">+2.3%</div>
+            </div>
+            <div class="stat-value" id="network-health">0%</div>
+            <div class="stat-label">Network Health</div>
+          </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+          <div class="section">
+            <div class="section-header">
+              <h3 class="section-title">Network Topology</h3>
+              <button class="btn btn-outline">
+                <i class="fas fa-expand"></i>
+                Full View
+              </button>
+            </div>
+            <div class="network-viz" id="network-visualization">
+              <div class="network-node super-peer">
+                <i class="fas fa-server"></i>
+              </div>
+              <!-- Peer nodes will be generated dynamically -->
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <h3 class="section-title">Recent Activity</h3>
+              <button class="btn btn-outline">
+                <i class="fas fa-history"></i>
+                View All
+              </button>
+            </div>
+            <div class="peer-list" id="activity-feed">
+              <!-- Activity items will be populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Files Section -->
+        <div class="section">
+          <div class="section-header">
+            <h3 class="section-title">Popular Files</h3>
+            <div>
+              <select class="btn btn-outline" id="file-filter">
+                <option value="">All Categories</option>
+                <option value="document">Documents</option>
+                <option value="image">Images</option>
+                <option value="video">Videos</option>
+                <option value="audio">Audio</option>
+                <option value="other">Other</option>
+              </select>
+              <button class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Add File
+              </button>
+            </div>
+          </div>
+          <div class="file-grid" id="files-grid">
+            <!-- Files will be populated dynamically -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification" class="notification">
+      <div id="notification-content"></div>
+    </div>
+
+    <script>
+      class P2PDashboard {
+        constructor() {
+          this.ws = null;
+          this.stats = {};
+          this.peers = [];
+          this.files = [];
+          this.init();
+        }
+
+        init() {
+          this.connectWebSocket();
+          this.setupEventListeners();
+          this.loadInitialData();
+          this.startUpdateTimer();
+        }
+
+        connectWebSocket() {
+          const protocol =
+            window.location.protocol === "https:" ? "wss:" : "ws:";
+          const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+          this.ws = new WebSocket(wsUrl);
+
+          this.ws.onopen = () => {
+            console.log("WebSocket connected");
+            this.showNotification("Connected to P2P Network", "success");
+          };
+
+          this.ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            this.handleWebSocketMessage(message);
+          };
+
+          this.ws.onclose = () => {
+            console.log("WebSocket disconnected, attempting reconnect...");
+            setTimeout(() => this.connectWebSocket(), 5000);
+          };
+
+          this.ws.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            this.showNotification("Connection error", "error");
+          };
+        }
+
+        handleWebSocketMessage(message) {
+          switch (message.type) {
+            case "stats_update":
+              this.updateStats(message.data);
+              break;
+            case "peer_registered":
+              this.onPeerRegistered(message.data);
+              break;
+            case "file_registered":
+              this.onFileRegistered(message.data);
+              break;
+          }
+        }
+
+        async loadInitialData() {
+          try {
+            const [statsRes, peersRes, filesRes] = await Promise.all([
+              fetch("/api/v1/stats"),
+              fetch("/api/v1/peers"),
+              fetch("/api/v1/files"),
+            ]);
+
+            this.stats = await statsRes.json();
+            this.peers = await peersRes.json();
+            this.files = await filesRes.json();
+
+            this.renderStats();
+            this.renderPeers();
+            this.renderFiles();
+            this.renderNetworkTopology();
+          } catch (error) {
+            console.error("Failed to load initial data:", error);
+            this.showNotification("Failed to load data", "error");
+          }
+        }
+
+        updateStats(stats) {
+          this.stats = stats;
+          this.renderStats();
+          document.getElementById("update-time").textContent =
+            new Date().toLocaleTimeString();
+        }
+
+        renderStats() {
+          document.getElementById("total-peers").textContent =
+            this.stats.online_peers || 0;
+          document.getElementById("total-files").textContent =
+            this.stats.total_files || 0;
+          document.getElementById("total-downloads").textContent =
+            this.stats.total_downloads || 0;
+          document.getElementById("network-health").textContent =
+            Math.round(this.stats.network_health || 0) + "%";
+        }
+
+        renderPeers() {
+          const container = document.getElementById("activity-feed");
+          container.innerHTML = "";
+
+          this.peers.slice(0, 5).forEach((peer) => {
+            const peerEl = document.createElement("div");
+            peerEl.className = "peer-item";
+            peerEl.innerHTML = `
+                        <div class="peer-avatar">
+                            ${peer.id.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div class="peer-info">
+                            <h4>${peer.address}:${peer.port}</h4>
+                            <p>Files: ${peer.shared_files || 0} • Rep: ${
+              peer.reputation || 0
+            }</p>
+                        </div>
+                        <div class="peer-status ${
+                          peer.is_online ? "online" : "offline"
+                        }">
+                            ${peer.is_online ? "Online" : "Offline"}
+                        </div>
+                    `;
+            container.appendChild(peerEl);
+          });
+        }
+
+        renderFiles() {
+          const container = document.getElementById("files-grid");
+          container.innerHTML = "";
+
+          this.files.slice(0, 12).forEach((file) => {
+            const fileEl = document.createElement("div");
+            fileEl.className = "file-item";
+
+            const icon = this.getFileIcon(file.filename);
+            const size = this.formatFileSize(file.size);
+
+            fileEl.innerHTML = `
+                        <div class="file-icon">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div class="file-name" title="${file.filename}">${
+              file.filename
+            }</div>
+                        <div class="file-meta">
+                            <span>${size}</span>
+                            <span>${file.downloads || 0} ⬇</span>
+                        </div>
+                    `;
+            container.appendChild(fileEl);
+          });
+        }
+
+        renderNetworkTopology() {
+          const container = document.getElementById("network-visualization");
+          const existingPeerNodes =
+            container.querySelectorAll(".network-node.peer");
+          existingPeerNodes.forEach((node) => node.remove());
+
+          this.peers.slice(0, 8).forEach((peer, index) => {
+            const angle = (index * 45 * Math.PI) / 180;
+            const radius = 120;
+            const x = 50 + Math.cos(angle) * radius;
+            const y = 50 + Math.sin(angle) * radius;
+
+            const peerNode = document.createElement("div");
+            peerNode.className = "network-node peer";
+            peerNode.style.left = x + "px";
+            peerNode.style.top = y + "px";
+            peerNode.style.setProperty("--delay", index * 0.2 + "s");
+            peerNode.innerHTML = peer.id.substring(0, 2).toUpperCase();
+
+            container.appendChild(peerNode);
+          });
+        }
+
+        setupEventListeners() {
+          // Navigation
+          document.querySelectorAll(".nav-item").forEach((item) => {
+            item.addEventListener("click", (e) => {
+              e.preventDefault();
+              document
+                .querySelectorAll(".nav-item")
+                .forEach((i) => i.classList.remove("active"));
+              item.classList.add("active");
+
+              const section = item.dataset.section;
+              document.getElementById("page-title").textContent =
+                section.charAt(0).toUpperCase() + section.slice(1);
+            });
+          });
+
+          // Global search
+          document
+            .getElementById("global-search")
+            .addEventListener("input", (e) => {
+              this.performSearch(e.target.value);
+            });
+
+          // File filter
+          document
+            .getElementById("file-filter")
+            .addEventListener("change", (e) => {
+              this.filterFiles(e.target.value);
+            });
+        }
+
+        performSearch(query) {
+          // Implement search functionality
+          console.log("Searching for:", query);
+        }
+
+        filterFiles(category) {
+          // Implement file filtering
+          console.log("Filtering by category:", category);
+        }
+
+        onPeerRegistered(peer) {
+          this.peers.unshift(peer);
+          this.renderPeers();
+          this.renderNetworkTopology();
+          this.showNotification(
+            `New peer connected: ${peer.address}`,
+            "success"
+          );
+        }
+
+        onFileRegistered(file) {
+          this.files.unshift(file);
+          this.renderFiles();
+          this.showNotification(`New file shared: ${file.filename}`, "success");
+        }
+
+        getFileIcon(filename) {
+          const ext = filename.split(".").pop().toLowerCase();
+          const iconMap = {
+            pdf: "fas fa-file-pdf",
+            doc: "fas fa-file-word",
+            docx: "fas fa-file-word",
+            xls: "fas fa-file-excel",
+            xlsx: "fas fa-file-excel",
+            ppt: "fas fa-file-powerpoint",
+            pptx: "fas fa-file-powerpoint",
+            txt: "fas fa-file-alt",
+            jpg: "fas fa-file-image",
+            jpeg: "fas fa-file-image",
+            png: "fas fa-file-image",
+            gif: "fas fa-file-image",
+            mp4: "fas fa-file-video",
+            avi: "fas fa-file-video",
+            mp3: "fas fa-file-audio",
+            wav: "fas fa-file-audio",
+            zip: "fas fa-file-archive",
+            rar: "fas fa-file-archive",
+          };
+          return iconMap[ext] || "fas fa-file";
+        }
+
+        formatFileSize(bytes) {
+          if (!bytes) return "0 B";
+          const k = 1024;
+          const sizes = ["B", "KB", "MB", "GB"];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return (
+            parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i]
+          );
+        }
+
+        showNotification(message, type = "success") {
+          const notification = document.getElementById("notification");
+          const content = document.getElementById("notification-content");
+
+          content.textContent = message;
+          notification.className = `notification ${type} show`;
+
+          setTimeout(() => {
+            notification.classList.remove("show");
+          }, 3000);
+        }
+
+        startUpdateTimer() {
+          setInterval(() => {
+            document.getElementById("update-time").textContent =
+              new Date().toLocaleTimeString();
+          }, 1000);
+        }
+      }
+
+      // Initialize dashboard when DOM is loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        new P2PDashboard();
+      });
+    </script>
+  </body>
+</html>
