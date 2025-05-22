@@ -794,35 +794,45 @@
           const container = document.getElementById("files-grid");
           container.innerHTML = "";
 
-          //filter duplicate files
-          this.files
-            .slice(0, 12)
-            .forEach((file) => {
-              const fileEl = document.createElement("div");
-              fileEl.className = "file-item";
+          const uniqueFiles = new Map(); // Map to store unique files by hash
 
-              const icon = this.getFileIcon(file.filename);
-              const size = this.formatFileSize(file.size);
+          this.files.forEach((file) => {
+            // Use file.ID as the key for uniqueness if ID is truly unique per file content
+            // Or use file.hash if you want to deduplicate based on content hash
+            if (!uniqueFiles.has(file.hash)) {
+              uniqueFiles.set(file.hash, file);
+            } else {
+              // Optional: If you want to show the one with more downloads, or combine info
+              // For now, we just keep the first one encountered
+            }
+          });
 
-              fileEl.innerHTML = `
-                        <div class="file-icon">
-                            <i class="${icon}"></i>
-                        </div>
-                        <div class="file-name" title="${file.filename}">${
-                file.filename
-              }</div>
-                        <div class="file-meta">
-                            <span>${size}</span>
-                            <span>${file.downloads || 0} ⬇</span>
-                        </div>
-                    `;
-              container.appendChild(fileEl);
-            })
-            .filter((file, index, self) => {
-              return (
-                index === self.findIndex((f) => f.filename === file.filename)
-              );
-            });
+          // Convert map values back to an array and sort by downloads for "Popular Files"
+          const filesToRender = Array.from(uniqueFiles.values())
+            .sort((a, b) => b.downloads - a.downloads)
+            .slice(0, 12);
+
+          filesToRender.forEach((file) => {
+            const fileEl = document.createElement("div");
+            fileEl.className = "file-item";
+
+            const icon = this.getFileIcon(file.filename);
+            const size = this.formatFileSize(file.size);
+
+            fileEl.innerHTML = `
+                      <div class="file-icon">
+                          <i class="${icon}"></i>
+                      </div>
+                      <div class="file-name" title="${file.filename}">${
+              file.filename
+            }</div>
+                      <div class="file-meta">
+                          <span>${size}</span>
+                          <span>${file.downloads || 0} ⬇</span>
+                      </div>
+                  `;
+            container.appendChild(fileEl);
+          });
         }
 
         renderNetworkTopology() {
@@ -899,10 +909,32 @@
           );
         }
 
-        onFileRegistered(file) {
-          this.files.unshift(file);
+        onFileRegistered(newFile) {
+          let found = false;
+          for (let i = 0; i < this.files.length; i++) {
+            // Check if file with same hash and owner already exists
+            if (
+              this.files[i].hash === newFile.hash &&
+              this.files[i].owner === newFile.owner
+            ) {
+              // Update existing file's properties
+              this.files[i] = {
+                ...this.files[i],
+                ...newFile,
+                upload_time: new Date(),
+              };
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            this.files.unshift(newFile); // Add new file to the beginning
+          }
           this.renderFiles();
-          this.showNotification(`New file shared: ${file.filename}`, "success");
+          this.showNotification(
+            `File shared/updated: ${newFile.filename}`,
+            "success"
+          );
         }
 
         getFileIcon(filename) {
