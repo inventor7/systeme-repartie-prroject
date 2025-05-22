@@ -1334,4 +1334,25 @@
       });
     </script>
   </body>
+
+  <!-- File Info Modal -->
+  <div id="file-info-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="app.closeModal()">&times;</span>
+      <h2 id="modal-file-title">File Information</h2>
+      <div id="modal-file-details">
+        <p><strong>Filename:</strong> <span id="modal-filename"></span></p>
+        <p><strong>Size:</strong> <span id="modal-filesize"></span></p>
+        <p><strong>Category:</strong> <span id="modal-filecategory"></span></p>
+        <p><strong>Hash:</strong> <span id="modal-filehash"></span></p>
+        <p><strong>Owner:</strong> <span id="modal-fileowner"></span></p>
+        <p>
+          <strong>Peer Address:</strong> <span id="modal-peeraddress"></span>
+        </p>
+        <p><strong>Upload Time:</strong> <span id="modal-uploadtime"></span></p>
+        <p><strong>Downloads:</strong> <span id="modal-downloads"></span></p>
+        <p><strong>Is Local:</strong> <span id="modal-islocal"></span></p>
+      </div>
+    </div>
+  </div>
 </html>

@@ -518,7 +518,9 @@ func (p *Peer) downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if file still exists on disk
+	log.Printf("DEBUG: Attempting to serve file from path: %s", file.FilePath) // Add this log
 	if _, err := os.Stat(file.FilePath); os.IsNotExist(err) {
+		log.Printf("ERROR: File not found on disk at path: %s, error: %v", file.FilePath, err) // Add this log
 		http.Error(w, "File not available", http.StatusNotFound)
 		return
 	}

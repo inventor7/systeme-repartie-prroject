@@ -89,42 +89,71 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="file-meta">
-                    <span>Owner: ${file.owner.substring(0, 8)}...</span>
-                    <span>Downloads: ${file.downloads}</span>
+                    <span>Owner: ${file.owner ? file.owner.substring(0, 8) + '...' : 'N/A'}</span>
+                    <span>Downloads: ${file.downloads || 0}</span>
                 </div>
                 <div class="file-actions">
+                    <button class="btn btn-secondary view-info-btn" data-file-id="${file.id}" data-is-local="${isLocal}">
+                        <i class="fas fa-info-circle"></i> Info
+                    </button>
+                    <button class="btn btn-primary download-btn" data-file-id="${file.id}" data-peer-address="${file.peer_address}" data-filename="${file.filename}">
+                        <i class="fas fa-download"></i> Download
+                    </button>
                     ${isLocal ? `
+                        <button class="btn btn-secondary share-link-btn" data-file-id="${file.id}">
+                            <i class="fas fa-share-alt"></i> Share Link
+                        </button>
                         <button class="btn btn-danger unshare-btn" data-file-id="${file.id}">
                             <i class="fas fa-trash"></i> Unshare
                         </button>
-                    ` : `
-                        <button class="btn btn-primary download-btn" data-file-id="${file.id}" data-peer-address="${file.peer_address}" data-filename="${file.filename}">
-                            <i class="fas fa-download"></i> Download
-                        </button>
-                    `}
+                    ` : ''}
                 </div>
             `;
             gridElement.appendChild(fileCard);
+        });
+
+        // Add event listeners for the new "View Info" buttons
+        document.querySelectorAll('.view-info-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const fileId = event.target.dataset.fileId;
+                const isLocal = event.target.dataset.isLocal === 'true';
+                viewFileInfo(fileId, isLocal);
+            });
+        });
+
+        // Add event listeners for Download buttons (now on both local and search results)
+        document.querySelectorAll('.download-btn').forEach(button => {
+            button.addEventListener('click', (event) => downloadFile(event.target.dataset.fileId, event.target.dataset.peerAddress, event.target.dataset.filename));
+        });
+
+        // Add event listeners for Share Link buttons
+        document.querySelectorAll('.share-link-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const fileId = event.target.dataset.fileId;
+                const shareLink = `http://localhost:8080/download/${fileId}`; // Construct the share link
+                navigator.clipboard.writeText(shareLink).then(() => {
+                    alert('Share link copied to clipboard!'); // Provide feedback
+                }).catch(err => {
+                    console.error('Failed to copy share link:', err);
+                    alert('Failed to copy share link.');
+                });
+            });
         });
 
         if (isLocal) {
             document.querySelectorAll('.unshare-btn').forEach(button => {
                 button.addEventListener('click', (event) => unshareFile(event.target.dataset.fileId));
             });
-        } else {
-            document.querySelectorAll('.download-btn').forEach(button => {
-                button.addEventListener('click', (event) => downloadFile(event.target.dataset.fileId, event.target.dataset.peerAddress, event.target.dataset.filename));
-            });
         }
     }
 
     // Helper functions for file icons and categories
     function getFileCategoryClass(category) {
-        return category.toLowerCase().replace(/\s/g, '-');
+        return category ? category.toLowerCase().replace(/\s/g, '-') : 'other';
     }
 
     function getFileIcon(category) {
-        switch (category.toLowerCase()) {
+        switch (category ? category.toLowerCase() : '') {
             case 'document': return 'fas fa-file-alt';
             case 'image': return 'fas fa-image';
             case 'video': return 'fas fa-video';
@@ -263,6 +292,84 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(downloadUrl, '_blank');
         console.log(`Attempting to download ${filename} from ${peerAddress} via Super-Peer.`);
     }
+
+    // View file information in modal
+    function viewFileInfo(fileId, isLocal) {
+        const file = isLocal
+            ? sharedFiles.find(f => f.id === fileId)
+            : searchResults.find(f => f.id === fileId);
+
+        if (!file) {
+            console.error('File not found for viewing info:', fileId);
+            return;
+        }
+
+        document.getElementById('modal-file-title').textContent = file.filename;
+        document.getElementById('modal-filename').textContent = file.filename;
+        document.getElementById('modal-filesize').textContent = formatBytes(file.size);
+        document.getElementById('modal-filecategory').textContent = file.category || 'Other';
+        document.getElementById('modal-filehash').textContent = file.hash || 'N/A';
+        document.getElementById('modal-fileowner').textContent = file.owner || 'N/A';
+        document.getElementById('modal-peeraddress').textContent = file.peer_address || 'N/A';
+        document.getElementById('modal-uploadtime').textContent = file.upload_time ? new Date(file.upload_time).toLocaleString() : 'N/A';
+        document.getElementById('modal-downloads').textContent = file.downloads || 0;
+        document.getElementById('modal-islocal').textContent = isLocal ? 'Yes' : 'No';
+
+        document.getElementById('file-info-modal').style.display = 'block';
+    }
+
+    // Close the file information modal
+    function closeModal() {
+        document.getElementById('file-info-modal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function (event) {
+        const modal = document.getElementById('file-info-modal');
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+
+
+    // View file information in modal
+    function viewFileInfo(fileId, isLocal) {
+        const file = isLocal
+            ? sharedFiles.find(f => f.id === fileId)
+            : searchResults.find(f => f.id === fileId);
+
+        if (!file) {
+            console.error('File not found for viewing info:', fileId);
+            return;
+        }
+
+        document.getElementById('modal-file-title').textContent = file.filename;
+        document.getElementById('modal-filename').textContent = file.filename;
+        document.getElementById('modal-filesize').textContent = formatBytes(file.size);
+        document.getElementById('modal-filecategory').textContent = file.category || 'Other';
+        document.getElementById('modal-filehash').textContent = file.hash || 'N/A';
+        document.getElementById('modal-fileowner').textContent = file.owner || 'N/A';
+        document.getElementById('modal-peeraddress').textContent = file.peer_address || 'N/A';
+        document.getElementById('modal-uploadtime').textContent = file.upload_time ? new Date(file.upload_time).toLocaleString() : 'N/A';
+        document.getElementById('modal-downloads').textContent = file.downloads || 0;
+        document.getElementById('modal-islocal').textContent = isLocal ? 'Yes' : 'No';
+
+        document.getElementById('file-info-modal').style.display = 'block';
+    }
+
+    // Close the file information modal
+    function closeModal() {
+        document.getElementById('file-info-modal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function (event) {
+        const modal = document.getElementById('file-info-modal');
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+
 
     // Initial fetches
     fetchPeerInfo();
