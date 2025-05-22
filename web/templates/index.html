@@ -794,27 +794,35 @@
           const container = document.getElementById("files-grid");
           container.innerHTML = "";
 
-          this.files.slice(0, 12).forEach((file) => {
-            const fileEl = document.createElement("div");
-            fileEl.className = "file-item";
+          //filter duplicate files
+          this.files
+            .slice(0, 12)
+            .forEach((file) => {
+              const fileEl = document.createElement("div");
+              fileEl.className = "file-item";
 
-            const icon = this.getFileIcon(file.filename);
-            const size = this.formatFileSize(file.size);
+              const icon = this.getFileIcon(file.filename);
+              const size = this.formatFileSize(file.size);
 
-            fileEl.innerHTML = `
+              fileEl.innerHTML = `
                         <div class="file-icon">
                             <i class="${icon}"></i>
                         </div>
                         <div class="file-name" title="${file.filename}">${
-              file.filename
-            }</div>
+                file.filename
+              }</div>
                         <div class="file-meta">
                             <span>${size}</span>
                             <span>${file.downloads || 0} ⬇</span>
                         </div>
                     `;
-            container.appendChild(fileEl);
-          });
+              container.appendChild(fileEl);
+            })
+            .filter((file, index, self) => {
+              return (
+                index === self.findIndex((f) => f.filename === file.filename)
+              );
+            });
         }
 
         renderNetworkTopology() {
